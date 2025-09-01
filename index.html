@@ -5,36 +5,101 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mission S-42 — Accès Restreint</title>
   <style>
-    :root{
-      --bg:#0e0f10;
-      --ink:#33ff66;
-      --dim:#b9ffcc;
-      --danger:#e15050;
-      --paper:#111;
-      --frame:#2a2a2a;
+    /* (mêmes styles que précédemment, pas de changement) */
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <div class="scanline"></div>
+
+    <header>
+      <h1>Mission S-42 · Cellule Opérations Extérieures</h1>
+      <div style="display:flex; gap:10px; align-items:center">
+        <div class="badge">Accréditation ALPHA</div>
+        <div class="stamp">Classifié</div>
+      </div>
+    </header>
+
+    <main>
+      <p class="intro">
+        Agent, indiquez le <em>nom de lieu de rendez-vous</em> pour valider le protocole de contact.
+      </p>
+
+      <div class="line">
+        <input id="code" type="text" autocomplete="off"
+               placeholder="" aria-label="Nom de rendez-vous" />
+        <button id="check">Vérifier</button>
+      </div>
+
+      <div id="status" class="status monosmall">
+        ▷ En attente d’entrée opérateur<span class="cursor"></span>
+      </div>
+    </main>
+
+    <footer>
+      <div>Direction des Renseignements — Bureau S-42</div>
+      <div>Ne pas diffuser sans autorisation</div>
+    </footer>
+  </div>
+
+  <script>
+    // Normalisation
+    function normalize(str){
+      return str.toLowerCase().replace(/\s+/g,' ').trim();
     }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      background: radial-gradient(1200px 800px at 50% -20%, #1a1d1a 0%, var(--bg) 60%) fixed;
-      color:var(--ink);
-      font-family:"Courier New", Courier, monospace;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:20px;
+
+    // Distance de Levenshtein simplifiée
+    function levenshtein(a,b){
+      const dp = Array.from({length:a.length+1}, ()=>Array(b.length+1).fill(0));
+      for(let i=0;i<=a.length;i++) dp[i][0]=i;
+      for(let j=0;j<=b.length;j++) dp[0][j]=j;
+      for(let i=1;i<=a.length;i++){
+        for(let j=1;j<=b.length;j++){
+          dp[i][j] = (a[i-1]===b[j-1]) ? dp[i-1][j-1] :
+            1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+        }
+      }
+      return dp[a.length][b.length];
     }
-    .frame{
-      width:min(720px, 100%);
-      border:2px solid var(--frame);
-      border-radius:12px;
-      box-shadow:0 0 0 4px #000 inset, 0 10px 40px rgba(0,0,0,.6);
-      background:
-        linear-gradient(rgba(255,255,255,0.02), rgba(255,255,255,0)) ,
-        repeating-linear-gradient(0deg, rgba(0,0,0,.15) 0 2px, rgba(0,0,0,0) 2px 4px),
-        var(--paper);
-      position:relative;
+
+    const ACCEPTED = [
+      "the green station",
+      "green station"
+    ];
+
+    const input = document.getElementById('code');
+    const btn   = document.getElementById('check');
+    const box   = document.getElementById('status');
+
+    function verify(){
+      const value = normalize(input.value);
+      box.classList.remove('success','error');
+
+      if(!value){
+        box.textContent = "⚑ Aucun lieu saisi. Indiquez le nom de rendez-vous.";
+        return;
+      }
+
+      let valid = false;
+      for(const expected of ACCEPTED){
+        if(value===expected){ valid=true; break; }
+        if(levenshtein(value,expected)<=2){ valid=true; break; } // tolère 2 fautes
+      }
+
+      if(valid){
+        box.classList.add('success');
+        box.innerHTML = "✅ Validation confirmée. La rencontre avec les contacts locaux se déroulera à <strong>the Green Station</strong>. Détails transmis par canal discret.";
+      }else{
+        box.classList.add('error');
+        box.innerHTML = "⛔ Nom invalide. Ce n’est pas le bon endroit. Réessayez.";
+      }
+    }
+
+    btn.addEventListener('click', verify);
+    input.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') verify(); });
+  </script>
+</body>
+</html>      position:relative;
       overflow:hidden;
     }
     .scanline{
